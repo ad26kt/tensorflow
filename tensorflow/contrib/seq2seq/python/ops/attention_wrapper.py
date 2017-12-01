@@ -1290,6 +1290,9 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
 
     # Step 1: Calculate the true inputs to the cell based on the
     # previous attention value.
+    ''' OZUM comment:
+        In Bahdanau case, This is the process of combinating context(t) vector with decoder hidden state(t-1)
+    '''
     cell_inputs = self._cell_input_fn(inputs, state.attention)
     cell_state = state.cell_state
     cell_output, next_cell_state = self._cell(cell_inputs, cell_state)
@@ -1319,6 +1322,10 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     all_attentions = []
     all_histories = []
     for i, attention_mechanism in enumerate(self._attention_mechanisms):
+      ''' OZUM comment:
+        attention : context vector if self._attention_layers is None, [batch, memory(encoder) length]
+        alignments : attention weight, [batch, memory(encoder) length]
+      '''
       attention, alignments = _compute_attention(
           attention_mechanism, cell_output, previous_alignments[i],
           self._attention_layers[i] if self._attention_layers else None)
@@ -1328,7 +1335,9 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
       all_alignments.append(alignments)
       all_histories.append(alignment_history)
       all_attentions.append(attention)
-
+    ''' OZUM comment:
+        attention -> context vector
+    '''
     attention = array_ops.concat(all_attentions, 1)
     next_state = AttentionWrapperState(
         time=state.time + 1,
@@ -1336,7 +1345,11 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
         attention=attention,
         alignments=self._item_or_tuple(all_alignments),
         alignment_history=self._item_or_tuple(all_histories))
-
+    
+    ''' OZUM comment:
+        True : Luong style
+        False : Bahdanau style
+    '''
     if self._output_attention:
       return attention, next_state
     else:
