@@ -185,17 +185,28 @@ class _BaseAttentionMechanism(AttentionMechanism):
         and not isinstance(memory_layer, layers_base.Layer)):
       raise TypeError(
           "memory_layer is not a Layer: %s" % type(memory_layer).__name__)
+    ''' OZUM comment:
+        bahdanau case: (Dense means weight matrix)
+        _query_layer : Dense(num_unit)
+        _memory_layer : Dense(num_unit)
+    '''
     self._query_layer = query_layer
     self._memory_layer = memory_layer
     if not callable(probability_fn):
       raise TypeError("probability_fn must be callable, saw type: %s" %
                       type(probability_fn).__name__)
+    ''' OZUM comment:
+        bahdanau case: prev won't be used
+    '''
     self._probability_fn = lambda score, prev: (  # pylint:disable=g-long-lambda
         probability_fn(
             _maybe_mask_score(score, memory_sequence_length, score_mask_value),
             prev))
     with ops.name_scope(
         name, "BaseAttentionMechanismInit", nest.flatten(memory)):
+      ''' OZUM comment:
+        masking to memory(encoder output) if memory_sequence_length is not None
+      '''
       self._values = _prepare_memory(
           memory, memory_sequence_length,
           check_inner_dims_defined=check_inner_dims_defined)
@@ -530,6 +541,10 @@ class BahdanauAttention(_BaseAttentionMechanism):
     """
     with variable_scope.variable_scope(None, "bahdanau_attention", [query]):
       processed_query = self.query_layer(query) if self.query_layer else query
+      ''' OZUM comment:
+        processed_query: weighted query(decoder state)
+        self._keys : masked, weighted memory(encoder output)
+      '''
       score = _bahdanau_score(processed_query, self._keys, self._normalize)
     alignments = self._probability_fn(score, previous_alignments)
     return alignments
@@ -1291,10 +1306,16 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     # Step 1: Calculate the true inputs to the cell based on the
     # previous attention value.
     ''' OZUM comment:
-        In Bahdanau case, This is the process of combinating context(t) vector with decoder hidden state(t-1)
+        In Bahdanau case, This is the process of combinating context(t) vector with decoder input(t)
     '''
     cell_inputs = self._cell_input_fn(inputs, state.attention)
+    ''' OZUM comment:
+        cell_state -> decoder hidden state(t-1)
+    '''
     cell_state = state.cell_state
+    ''' OZUM comment:
+        with GRUCell, cell_output == next_cell_state
+    '''
     cell_output, next_cell_state = self._cell(cell_inputs, cell_state)
 
     cell_batch_size = (
