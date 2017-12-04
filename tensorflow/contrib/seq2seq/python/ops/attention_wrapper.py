@@ -1307,14 +1307,17 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     # previous attention value.
     ''' OZUM comment:
         In Bahdanau case, This is the process of combinating context(t) vector with decoder input(t)
+        state.attention : context(t)
+        inputs : decoder_input(t)
     '''
     cell_inputs = self._cell_input_fn(inputs, state.attention)
     ''' OZUM comment:
-        cell_state -> decoder hidden state(t-1)
+        cell_state : decoder hidden state(t-1)
     '''
     cell_state = state.cell_state
     ''' OZUM comment:
         with GRUCell, cell_output == next_cell_state
+        cell_output : decoder hidden state(t)
     '''
     cell_output, next_cell_state = self._cell(cell_inputs, cell_state)
 
@@ -1344,8 +1347,8 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     all_histories = []
     for i, attention_mechanism in enumerate(self._attention_mechanisms):
       ''' OZUM comment:
-        attention : context vector if self._attention_layers is None, [batch, memory(encoder) length]
-        alignments : attention weight, [batch, memory(encoder) length]
+        attention : context vector(t+1) if self._attention_layers is None, [batch, memory(encoder) length]
+        alignments : attention weight(t+1), [batch, memory(encoder) length]
       '''
       attention, alignments = _compute_attention(
           attention_mechanism, cell_output, previous_alignments[i],
