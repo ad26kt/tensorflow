@@ -1180,11 +1180,16 @@ def static_rnn(cell,
 
       input_shape = first_input.get_shape().with_rank_at_least(2)
       fixed_batch_size = input_shape[0]
-
+      ''' OZUM comment:
+        list of  tensor input case, return the same inputs
+      '''
       flat_inputs = nest.flatten(inputs)
       for flat_input in flat_inputs:
         input_shape = flat_input.get_shape().with_rank_at_least(2)
         batch_size, input_size = input_shape[0], input_shape[1:]
+        ''' OZUM comment:
+          nothing to do with the case that the inputs are a list of normal tensor
+        '''
         fixed_batch_size.merge_with(batch_size)
         for i, size in enumerate(input_size):
           if size.value is None:
@@ -1215,9 +1220,15 @@ def static_rnn(cell,
 
       def _create_zero_output(output_size):
         # convert int to TensorShape if necessary
+        ''' OZUM comment:
+          in out case, tensor [batch_size, output_size]
+        '''
         size = _concat(batch_size, output_size)
         output = array_ops.zeros(
             array_ops.stack(size), _infer_state_dtype(dtype, state))
+        ''' OZUM comment:
+          if static = True, then return a list : [batch_size, output_size] but not tensor
+        '''
         shape = _concat(fixed_batch_size.value, output_size, static=True)
         output.set_shape(tensor_shape.TensorShape(shape))
         return output
@@ -1226,6 +1237,9 @@ def static_rnn(cell,
       flat_output_size = nest.flatten(output_size)
       flat_zero_output = tuple(
           _create_zero_output(size) for size in flat_output_size)
+      ''' OZUM comment:
+        we don't have to consider what those operations do, zero_output = tf.zeros(batch_size, output_size)
+      '''
       zero_output = nest.pack_sequence_as(
           structure=output_size, flat_sequence=flat_zero_output)
 
