@@ -539,6 +539,9 @@ class BahdanauAttention(_BaseAttentionMechanism):
         `[batch_size, alignments_size]` (`alignments_size` is memory's
         `max_time`).
     """
+    ''' OZUM comment:
+        we have to pay attention here, the usage of variable_scope
+    '''
     with variable_scope.variable_scope(None, "bahdanau_attention", [query]):
       processed_query = self.query_layer(query) if self.query_layer else query
       ''' OZUM comment:
