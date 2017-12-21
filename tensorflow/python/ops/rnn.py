@@ -555,9 +555,15 @@ def dynamic_rnn(cell, inputs, sequence_length=None, initial_state=None,
   # By default, time_major==False and inputs are batch-major: shaped
   #   [batch, time, depth]
   # For internal calculations, we transpose to [time, batch, depth]
+  ''' OZUM comment :
+    flat_input = [input] if input is a common tensor
+  '''
   flat_input = nest.flatten(inputs)
 
   if not time_major:
+    ''' OZUM comment :
+      return (tf.transpose(input, [1, 0, 2]), ) if input is a common tensor
+    '''
     # (B,T,D) => (T,B,D)
     flat_input = [ops.convert_to_tensor(input_) for input_ in flat_input]
     flat_input = tuple(_transpose_batch_time(input_) for input_ in flat_input)
@@ -601,7 +607,10 @@ def dynamic_rnn(cell, inputs, sequence_length=None, initial_state=None,
           [_assert_has_shape(sequence_length, [batch_size])]):
         sequence_length = array_ops.identity(
             sequence_length, name="CheckSeqLen")
-
+    
+    ''' OZUM comment :
+      equal to tf.transpose(inputs, [1, 0, 2]) if inputs is a common tensor
+    '''
     inputs = nest.pack_sequence_as(structure=inputs, flat_sequence=flat_input)
 
     (outputs, final_state) = _dynamic_rnn_loop(
