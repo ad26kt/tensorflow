@@ -509,6 +509,9 @@ class BahdanauAttention(_BaseAttentionMechanism):
     """
     if probability_fn is None:
       probability_fn = nn_ops.softmax
+    ''' OZUM comment:
+        wrapped_probability_fn ignores the previous_alignments in later part
+    '''
     wrapped_probability_fn = lambda score, _: probability_fn(score)
     super(BahdanauAttention, self).__init__(
         query_layer=layers_core.Dense(
@@ -547,6 +550,8 @@ class BahdanauAttention(_BaseAttentionMechanism):
       ''' OZUM comment:
         processed_query: weighted query(decoder state)
         self._keys : masked, weighted memory(encoder output)
+        score : e(i = 1~n, j) in Bahdanau paper, n is the length of encoder input, size of [batch, encoder_length]
+        alignments = softmax(e(i = 1~n,j))
       '''
       score = _bahdanau_score(processed_query, self._keys, self._normalize)
     alignments = self._probability_fn(score, previous_alignments)
@@ -1124,7 +1129,12 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
         raise TypeError(
             "cell_input_fn must be callable, saw type: %s"
             % type(cell_input_fn).__name__)
-
+    ''' OZUM comment:
+        attention_layer is what can be compared to cell_input_fn
+        it may be used when luong attention(to be checked)
+        In Bahdanau case, None
+        check _compute_attenion to see how it works
+    '''
     if attention_layer_size is not None:
       attention_layer_sizes = tuple(
           attention_layer_size
@@ -1310,8 +1320,8 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     # previous attention value.
     ''' OZUM comment:
         In Bahdanau case, This is the process of combinating context(t) vector with decoder input(t)
-        state.attention : context(t)
-        inputs : decoder_input(t)
+        state.attention : context(t), which is composed of s(t-1) and h(j)
+        inputs : decoder_input(t), the same as y(t-1) in Bahdanau paper
     '''
     cell_inputs = self._cell_input_fn(inputs, state.attention)
     ''' OZUM comment:
@@ -1321,6 +1331,7 @@ class AttentionWrapper(rnn_cell_impl.RNNCell):
     ''' OZUM comment:
         with GRUCell, cell_output == next_cell_state
         cell_output : decoder hidden state(t)
+        Actually, this is the computation of s(t) = f[ s(t-1), y(t-1), c(t) ] in Bahdanau paper
     '''
     cell_output, next_cell_state = self._cell(cell_inputs, cell_state)
 
